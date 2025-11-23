@@ -94,13 +94,13 @@ The percentage of times the correct pair x_j is identified in the top K embeddin
 ## **DBSCAN Clustering**
 
 DBSCAN clustering is used to detect high density regions in the embedding space.  
-A moderately coherent cluster emerges containing:
+A moderately coherent cluster (silhouette score = 0.53) emerges containing:
 
 - 30% PIF-like events  
 - 52% Groundscatter  
 - 18% Non-Events  
 
-This cluster contains short, intense poleward-moving structures consistent with PIF characteristics.
+This cluster contains short, intense poleward-moving structures consistent with PIF characteristics. Future work should aim to implement multi-modal features.
 
 ---
 
