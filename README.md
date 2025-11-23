@@ -5,12 +5,13 @@
 
 ## **Pipeline Overview**
 <p align="center">
-  <img width="650" src="https://github.com/user-attachments/assets/5cbdee70-7d4d-4d2d-998a-7cdd83834c44" />
+  <img width="440" height="617" alt="Screenshot 2025-11-23 192609" src="https://github.com/user-attachments/assets/46e4d31b-eb14-4bfd-a66b-4e1caa3c30f5" />
 </p>
 
 This project implements a pipeline for identifying Pulsed Ionospheric Flows (PIFs) from SuperDARN radar data using self-supervised contrastive learning (SimCLR). The pipeline applies standard SimCLR with an additional attention layer in the encoder. Augmented views of an observed sample are created, encoded by a CNN and then clustered into a learned embedding space to identify PIF behaviour. 
 
 ---
+
 
 ## **Project Motivation**
 
@@ -63,7 +64,10 @@ SimCLR is used to learn representations of PIF samples by contrasting augmented 
 - Swapping  
 - Translation  
 
----
+<p align="center">
+  <img width="500" height="800" alt="augmentations (1)" src="https://github.com/user-attachments/assets/12baaeaa-0c6e-4499-b004-fe9e84401171" />
+</p>
+
 
 ## **Base Encoder**
 
