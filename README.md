@@ -1,6 +1,9 @@
 # **SimCLR-for-Ionospheric-Event-Identification**
 ### **Using Self-Supervised Machine Learning to Identify Pulsed Ionospheric Flows in SuperDARN Observations**
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Python 3.10](https://img.shields.io/badge/python-3.10%2B-blue)
+![Docker Ready](https://img.shields.io/badge/Docker-ready-blue?logo=docker)
 ---
 
 ## **Pipeline Overview**
