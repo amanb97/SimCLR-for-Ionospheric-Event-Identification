@@ -1,0 +1,11 @@
+*
+!Dockerfile
+!requirements.txt
+!pyproject.toml
+!src/
+!src/**
+!scripts/
+!scripts/**
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/
