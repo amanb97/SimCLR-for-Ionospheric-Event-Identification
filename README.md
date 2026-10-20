@@ -11,6 +11,18 @@
 This project implements a pipeline for identifying Pulsed Ionospheric Flows (PIFs) from SuperDARN radar data using self-supervised contrastive learning (SimCLR). The pipeline applies standard SimCLR with an additional attention layer in the encoder. Augmented views of an observed sample are created, encoded by a CNN and then clustered into a learned embedding space to identify PIF behaviour. 
 
 ---
+## Repository structure
+
+| Path | Purpose |
+|---|---|
+| `src/ionospheric_simclr/models.py` | Defines the CNN encoder, multi-head attention layer, projection head, and complete SimCLR model.|
+| `src/ionospheric_simclr/data_loader.py` | Loads HDF5 segments, applies augmentations, normalises power values and forms SimCLR batches. |
+| `src/ionospheric_simclr/augmentation_strategies.py` | Implements all stochastic transformations used to create positive pairs.|
+| `src/ionospheric_simclr/train.py` | Full training loop with logging, early stopping and checkpointing. |
+| `scripts/` | Command-line entry points for each stage |
+| `docs/` | Reports|
+| `tests/` | Test stubs |
+| `Dockerfile` ||
 
 
 ## **Project Motivation**
@@ -108,25 +120,153 @@ This cluster contains short, intense poleward-moving structures consistent with 
 
 ---
 
-# **Repository Scripts**
 
-### **pre-processing.py**  
-Converts raw fitacf files into magnetic latitude, time-series segments, resamples into 1 hour windows and writes the HDF5 dataset.
 
-### **data_loader.py**  
-Loads HDF5 segments, applies augmentations, normalises power values and forms SimCLR batches.
+**Workflow:** download processed data, inspect observations, train SimCLR,
+extract encoder embeddings, cluster and visualise.
 
-### **augmentation_strategies.py**  
-Implements all stochastic transformations used to create positive pairs.
+[Dataset](https://www.kaggle.com/datasets/amanbhalla01/superdarn-hankasalmi-processed-segments)
+· [Project report](docs/report.pdf)
 
-### **models.py**  
-Defines the CNN encoder, multi-head attention layer, projection head, and complete SimCLR model.
 
-### **train.py**  
-Full training loop with logging, early stopping and checkpointing.
+## Installation
 
-### **visualisation.py**  
-Extracts embeddings and plots nearest neighbours of selected samples for qualitative inspection.
+Use Python **3.10+**
 
-### **pca.py**  
-Runs PCA, DBSCAN clustering and nearest-neighbour search in the embedding space.
+### 1. Setup
+
+```bash
+python -m venv .venv
+```
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+CPU-only PyTorch on Linux or Windows:
+
+```bash
+python -m pip install "torch>=2.2,<3" --index-url https://download.pytorch.org/whl/cpu
+```
+
+For CUDA, use the installation command selected for your system at
+[PyTorch installation](https://pytorch.org/get-started/locally/).
+
+Install the other dependencies and the local package:
+
+```bash
+python -m pip install -r requirements.txt
+python -m pip install -e . --no-deps
+```
+
+## Dataset Download
+
+**[SuperDARN Hankasalmi — Processed Segments](https://www.kaggle.com/datasets/amanbhalla01/superdarn-hankasalmi-processed-segments)**
+
+The workflow expects `train.h5`, `val.h5` and `test.h5`. The current model uses the **power
+channel**, the preprocessing code also stores Doppler velocity and spectral
+width. Missing samples use `-9999`.
+
+Install the Kaggle CLI and login:
+
+```bash
+python -m pip install --upgrade kaggle
+kaggle auth login
+```
+
+Download and unzip:
+
+```bash
+kaggle datasets download -d amanbhalla01/superdarn-hankasalmi-processed-segments -p data --unzip
+```
+
+
+## Run the workflow
+
+Inspect and train on up to 64 segments per split, then embed and cluster up to
+64 test segments:
+
+```bash
+python scripts/run_workflow.py --data-dir data --out-dir runs/quickstart --epochs 1 --batch-size 8 --max-samples 64 --min-samples 5
+```
+
+
+### 1. Inspect processed observations
+
+```bash
+python scripts/inspect_data.py --input data/train.h5 --out runs/inspection
+```
+
+Saves `samples.png` and `summary.json`.
+
+### 2. Train SimCLR
+
+```bash
+python scripts/train_ssl.py --train data/train.h5 --val data/val.h5 --out runs/ssl --epochs 20 --batch-size 16
+```
+
+The model uses CUDA when available and otherwise CPU. Select explicitly with
+`--device cpu` or `--device cuda`.
+
+Outputs include:
+
+- `runs/ssl/checkpoints/best_model.pth`
+- `runs/ssl/config.json`
+- `runs/ssl/metrics.csv`
+- `runs/ssl/loss.png`
+- `runs/ssl/logs/training.log`
+
+
+### 3. Extract encoder embeddings
+
+```bash
+python scripts/extract_embeddings.py --input data/test.h5 --checkpoint runs/ssl/checkpoints/best_model.pth --out runs/embeddings/test.npz
+```
+
+
+### 4. Cluster and visualise
+
+```bash
+python scripts/cluster_dbscan.py --embeddings runs/embeddings/test.npz --out runs/clusters --eps 0.4 --min-samples 20
+```
+
+DBSCAN runs in the full embedding space. PCA is used only to display the result.
+Adjust `--eps` and `--min-samples` for the number and distribution of observations.
+
+Outputs:
+
+- `pca_clusters.png`: projected embeddings coloured by cluster.
+- `assignments.csv`: segment IDs, cluster assignments, PCA coordinates and metadata.
+- `cluster_examples.png`: radar samples from up to four of the largest clusters,
+- `summary.json`: cluster count, noise count and a silhouette score
+
+
+## Docker
+
+Install [Docker](https://docs.docker.com/get-started/get-docker/) and download the
+dataset.
+
+### Build
+
+```bash
+docker build -t ionospheric-simclr .
+```
+
+
+### Run — Windows PowerShell
+
+```powershell
+New-Item -ItemType Directory -Force runs | Out-Null
+docker run --rm `
+  --mount "type=bind,source=$($PWD.Path)\data,target=/data,readonly" `
+  --mount "type=bind,source=$($PWD.Path)\runs,target=/outputs" `
+  ionospheric-simclr `
+  python scripts/run_workflow.py --data-dir /data --out-dir /outputs/docker-run --device cpu --epochs 1 --batch-size 8 --max-samples 64 --min-samples 5
+```
+
+Results appear in `runs/docker-run/`
+
+
+
